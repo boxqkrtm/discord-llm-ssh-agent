@@ -140,7 +140,7 @@ async def on_message(message):
                         reset_llm(guildId)
                     fullmessage = ""
                     try:
-                        llmHistory[guildId].send_message(userLastMessage)
+                        await llmHistory[guildId].send_message_async(userLastMessage)
                         aio = llmHistory[guildId].last.text
                         pattern1 = r"ssh\\(.*?)\\"
                         if re.search(pattern1, llmHistory[guildId].last.text):
