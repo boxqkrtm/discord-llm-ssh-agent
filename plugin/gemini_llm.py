@@ -1,8 +1,7 @@
-import os
-from dotenv import load_dotenv
-import google.generativeai as genai
+from google.generativeai import GenerativeModel, configure
+import config
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+configure(api_key=config.google_api_key)
 
 generation_config = {
     "temperature": 0.9,
@@ -18,7 +17,7 @@ safety_settings = [
 ]
 
 def get_gemini_chat():
-    model = genai.GenerativeModel(
+    model = GenerativeModel(
         model_name="gemini-1.5-flash-latest",
         tools='code_execution',
         generation_config=generation_config,
@@ -28,7 +27,7 @@ def get_gemini_chat():
     return model.start_chat(history=template)
 
 def get_gemini_ssh_chat(memo):
-    model = genai.GenerativeModel(
+    model = GenerativeModel(
         model_name="gemini-1.5-flash-latest",
         generation_config=generation_config,
         safety_settings=safety_settings,
