@@ -69,8 +69,7 @@ async def set_ssh_credentials(interaction: discord.Interaction, hostname: str, u
 
 @client.event
 async def on_ready():
-    if config.sync_tree:
-        await tree.sync()
+    await tree.sync()
     print("We have logged in as {0.user}".format(client))
 
 isSync = {}
