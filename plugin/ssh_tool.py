@@ -1,4 +1,3 @@
-import asyncio
 import re
 import select
 import time

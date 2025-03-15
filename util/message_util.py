@@ -3,7 +3,7 @@ import time
 
 async def send_message_in_chunks(message, content):
     content = str(content)
-    if(content.replace("\n","")==""):
+    if content.replace("\n", "") == "":
         return
     chunk_size = 2000
     for i in range(0, len(content), chunk_size):
