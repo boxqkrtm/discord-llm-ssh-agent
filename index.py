@@ -6,6 +6,7 @@ import re
 import traceback
 import pickle
 import config
+from config import ALWAYS_RESPONSE_CHANNEL_SUFFIX
 
 
 # util
@@ -111,7 +112,7 @@ async def on_message(message):
             )
 
         # 메시지 즉시답변
-        if "-llm" in message.channel.name:
+        if ALWAYS_RESPONSE_CHANNEL_SUFFIX in message.channel.name:
             if guild_id in llmIsRunning:
                 # response = "please wait for the previous command to finish"
                 pass
