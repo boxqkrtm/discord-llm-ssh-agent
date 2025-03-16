@@ -51,6 +51,11 @@ async def set_ssh_credentials(interaction: discord.Interaction, hostname: str, u
     """
     Slash command to set SSH credentials, with an optional memo.
     """
+    # Check if the user has administrator permissions
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You need administrator permissions to use this command.", ephemeral=True)
+        return
+        
     guild_id = interaction.guild.id
     ssh_credentials[guild_id] = {}
     ssh_credentials[guild_id]["hostname"] = hostname
@@ -66,6 +71,91 @@ async def set_ssh_credentials(interaction: discord.Interaction, hostname: str, u
     reset_llm(guild_id)
     #await interaction.delete_original_response()
     await interaction.response.send_message("SSH credentials updated successfully.")
+
+@tree.command(name="reset_ssh")
+async def reset_ssh(interaction: discord.Interaction):
+    """
+    Slash command to reset SSH configuration for the server.
+    """
+    # Check if the user has administrator permissions
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You need administrator permissions to use this command.", ephemeral=True)
+        return
+        
+    guild_id = interaction.guild.id
+    if guild_id in ssh_credentials:
+        ssh_credentials[guild_id] = {}
+        save_ssh_credential()
+        reset_llm(guild_id)
+        await interaction.response.send_message("SSH configuration has been reset. Use /set_ssh to configure new SSH credentials.")
+    else:
+        await interaction.response.send_message("No SSH configuration found for this server. Use /set_ssh to configure your SSH credentials.")
+
+@tree.command(name="test_ssh")
+async def test_ssh_connection(interaction: discord.Interaction):
+    """
+    Slash command to test the SSH connection with the stored credentials.
+    """
+    # Check if the user has administrator permissions
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You need administrator permissions to use this command.", ephemeral=True)
+        return
+        
+    guild_id = interaction.guild.id
+    if guild_id not in ssh_credentials or not all(key in ssh_credentials[guild_id] for key in ["hostname", "username", "password", "port"]):
+        await interaction.response.send_message("SSH credentials not configured. Use /set_ssh to configure your SSH credentials.")
+        return
+    
+    await interaction.response.defer(thinking=True)
+    
+    try:
+        import paramiko
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        
+        hostname = ssh_credentials[guild_id]["hostname"]
+        username = ssh_credentials[guild_id]["username"]
+        password = ssh_credentials[guild_id]["password"]
+        port = ssh_credentials[guild_id]["port"]
+        
+        client.connect(hostname=hostname, username=username, password=password, port=port, timeout=10)
+        channel = client.get_transport().open_session()
+        channel.exec_command("echo 'SSH connection successful'")
+        client.close()
+        
+        await interaction.followup.send("✅ SSH connection test successful! Your credentials are working properly.")
+    except Exception as e:
+        await interaction.followup.send(f"❌ SSH connection test failed: {str(e)}")
+
+@tree.command(name="list_ssh")
+async def list_ssh_config(interaction: discord.Interaction):
+    """
+    Slash command to list the current SSH configuration.
+    """
+    # Check if the user has administrator permissions
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You need administrator permissions to use this command.", ephemeral=True)
+        return
+        
+    guild_id = interaction.guild.id
+    if guild_id not in ssh_credentials or not ssh_credentials[guild_id]:
+        await interaction.response.send_message("No SSH configuration found for this server. Use /set_ssh to configure your SSH credentials.")
+        return
+    
+    config = ssh_credentials[guild_id]
+    # Hide the password for security
+    masked_password = "********" if "password" in config else "Not set"
+    
+    config_details = f"**SSH Configuration**\n"
+    config_details += f"- **Hostname**: {config.get('hostname', 'Not set')}\n"
+    config_details += f"- **Port**: {config.get('port', 'Not set')}\n"
+    config_details += f"- **Username**: {config.get('username', 'Not set')}\n"
+    config_details += f"- **Password**: {masked_password}\n"
+    
+    if "memo" in config and config["memo"]:
+        config_details += f"- **Memo**: {config['memo']}\n"
+    
+    await interaction.response.send_message(config_details)
 
 @client.event
 async def on_ready():
