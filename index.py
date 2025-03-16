@@ -6,7 +6,6 @@ import re
 import traceback
 import pickle
 import config
-from config import ALWAYS_RESPONSE_CHANNEL_SUFFIX
 
 
 # util
@@ -112,7 +111,7 @@ async def on_message(message):
             )
 
         # 메시지 즉시답변
-        if ALWAYS_RESPONSE_CHANNEL_SUFFIX in message.channel.name:
+        if config.ALWAYS_RESPONSE_CHANNEL_SUFFIX in message.channel.name or user_last_message.startswith(config.QUESTION_PREFIX):
             if guild_id in llmIsRunning:
                 # response = "please wait for the previous command to finish"
                 pass
@@ -121,10 +120,14 @@ async def on_message(message):
                 await message.channel.send(
                     content="[command] 컨텍스트 초기화되었습니다. 이제부터는 새로운 질문에 대해서만 답변드리겠습니다."
                 )
-            elif user_last_message.startswith("!"):
-                # !시작은 LLM 무시
+            elif user_last_message.startswith("!") and not user_last_message.startswith(config.QUESTION_PREFIX):
+                # !시작은 LLM 무시 (QUESTION_PREFIX 제외)
                 return
             else:
+                # QUESTION_PREFIX로 시작하는 경우 접두사 제거
+                if user_last_message.startswith(config.QUESTION_PREFIX):
+                    user_last_message = user_last_message[len(config.QUESTION_PREFIX):].strip()
+                
                 async with message.channel.typing():
                     llmIsRunning[guild_id] = 1
                     nowtime = datetime.datetime.now()
